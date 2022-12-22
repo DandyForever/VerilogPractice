@@ -8,7 +8,9 @@ module performance_monitor #(
   parameter CU_ID      = 8'b0,
   parameter [ID_W-1:0]EU_ID[N_EU-1:0] = {8'd1, 8'd2, 8'd3},
   parameter CLK_CNT_W  = 32,
-  parameter CLK_VAL    = 32'h1000
+  parameter CLK_VAL    = 32'h1000,
+  parameter BUF_S      = 128,
+  parameter DATA_N     = 7'd20
 )(
   input logic clk_i,
   input logic reset_i
@@ -26,7 +28,8 @@ module performance_monitor #(
     .ID_W      (ID_W      ),
     .N_EU      (N_EU      ),
     .CLK_CNT_W (CLK_CNT_W ),
-    .CLK_VAL   (CLK_VAL   )
+    .CLK_VAL   (CLK_VAL   ),
+    .BUF_S     (BUF_S     )
   ) cu (
     .clk_i          (clk_i            ),
     .reset_i        (reset_i          ),
@@ -46,9 +49,11 @@ module performance_monitor #(
       .AXIS_DIN_W(AXIS_DIN_W),
       .CMD_W     (CMD_W     ),
       .ID        (EU_ID[j]  ),
-      .ID_W      (ID_W      )
+      .ID_W      (ID_W      ),
+      .BUF_S     (BUF_S     ),
+      .DATA_N    (DATA_N    )
     ) eu (
-      .clk_i(clk_i),
+      .clk_i          (clk_i           ),
       .reset_i        (reset_i         ),
       .s_axis_tvalid_i(axis_tvalid[j]  ),
       .s_axis_tready_o(axis_tready[j]  ),

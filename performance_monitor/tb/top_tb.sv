@@ -1,12 +1,14 @@
 module top_tb();
 
-  localparam AXIS_DIN_W = 24;
+  localparam AXIS_DIN_W = 8;
   localparam CMD_W      = 24;
   localparam CU_ID      = 8'b0;
   localparam ID_W       = 8;
   localparam N_EU       = 8'd100;
   localparam CLK_CNT_W  = 32;
-  localparam CLK_VAL    = 32'h200;
+  localparam CLK_VAL    = 32'h3000;
+  localparam BUF_S      = 128;
+  localparam DATA_N     = 7'd19;
 
   localparam [ID_W-1:0]EU_ID[0:N_EU-1] = {
     8'd1, 8'd2, 8'd3, 8'd4, 8'd5, 8'd6, 8'd7, 8'd8, 8'd9, 8'd10,
@@ -18,7 +20,7 @@ module top_tb();
     8'd61, 8'd62, 8'd63, 8'd64, 8'd65, 8'd66, 8'd67, 8'd68, 8'd69, 8'd70,
     8'd71, 8'd72, 8'd73, 8'd74, 8'd75, 8'd76, 8'd77, 8'd78, 8'd79, 8'd80,
     8'd81, 8'd82, 8'd83, 8'd84, 8'd85, 8'd86, 8'd87, 8'd88, 8'd89, 8'd90,
-    8'd91, 8'd92, 8'd93, 8'd94, 8'd95, 8'd96, 8'd97, 8'd98, 8'd99, 8'd100
+    8'd91, 8'd92, 8'd93, 8'd94, 8'd95, 8'd96, 8'd97, 8'd98, 8'd99, 8'd100/**/
   };
 
   logic clk, reset;
@@ -31,7 +33,8 @@ module top_tb();
     .CU_ID     (CU_ID     ),
     .EU_ID     (EU_ID     ),
     .CLK_CNT_W (CLK_CNT_W ),
-    .CLK_VAL   (CLK_VAL   )
+    .CLK_VAL   (CLK_VAL   ),
+    .DATA_N    (DATA_N    )
   ) pmon (
     .clk_i  (clk  ),
     .reset_i(reset)
@@ -44,7 +47,7 @@ module top_tb();
 
   initial begin
     reset = 1'b1; #1.5; reset = 1'b0;
-    #10000;
+    #70000;
     $finish;
   end
 
