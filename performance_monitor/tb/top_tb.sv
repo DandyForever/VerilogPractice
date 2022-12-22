@@ -1,14 +1,15 @@
 module top_tb();
 
   localparam AXIS_DIN_W = 8;
-  localparam CMD_W      = 24;
   localparam CU_ID      = 8'b0;
   localparam ID_W       = 8;
   localparam N_EU       = 8'd100;
   localparam CLK_CNT_W  = 32;
   localparam CLK_VAL    = 32'h3000;
   localparam BUF_S      = 128;
-  localparam DATA_N     = 7'd19;
+  localparam CNT_W      = 24;
+  localparam CC_N       = 6;
+  localparam SC_N       = 4;
 
   localparam [ID_W-1:0]EU_ID[0:N_EU-1] = {
     8'd1, 8'd2, 8'd3, 8'd4, 8'd5, 8'd6, 8'd7, 8'd8, 8'd9, 8'd10,
@@ -25,24 +26,43 @@ module top_tb();
 
   logic clk, reset;
 
+  logic [N_EU-1:0][SC_N-1:0]signal_i;
+
+  logic [N_EU-1:0][CC_N-1:0]axis_tvalid_i;
+  logic [N_EU-1:0][CC_N-1:0]axis_tready_i;
+  logic [N_EU-1:0][CC_N-1:0]axis_tlast_i;
+
   performance_monitor #(
     .AXIS_DIN_W(AXIS_DIN_W),
-    .CMD_W     (CMD_W     ),
     .N_EU      (N_EU      ),
     .ID_W      (ID_W      ),
     .CU_ID     (CU_ID     ),
     .EU_ID     (EU_ID     ),
     .CLK_CNT_W (CLK_CNT_W ),
     .CLK_VAL   (CLK_VAL   ),
-    .DATA_N    (DATA_N    )
+    .CNT_W     (CNT_W     ),
+    .CC_N      (CC_N      ),
+    .SC_N      (SC_N      )
   ) pmon (
-    .clk_i  (clk  ),
-    .reset_i(reset)
+    .clk_i        (clk          ),
+    .reset_i      (reset        ),
+    .signal_i     (signal_i     ),
+    .axis_tvalid_i(axis_tvalid_i),
+    .axis_tready_i(axis_tready_i),
+    .axis_tlast_i (axis_tlast_i )
   );
 
   always begin
     clk = 1'b0; #1;
     clk = 1'b1; #1;
+  end
+
+  always @(posedge clk) begin
+   signal_i      = $random();
+   axis_tvalid_i = $random();
+   axis_tready_i = $random();
+   axis_tlast_i  = $random();
+
   end
 
   initial begin

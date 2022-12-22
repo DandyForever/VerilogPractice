@@ -1,6 +1,6 @@
 `default_nettype none
 
-module static_counter #(
+module conf_counter #(
   parameter CNT_W  = 16,
   parameter MODE_W = 2
 )(
@@ -15,7 +15,7 @@ module static_counter #(
   input logic             en_i,
   input logic             clear_i,
   input logic             save_i,
-  input logic [MODE_W-1:0]mode_i
+  input logic [MODE_W-1:0]mode_i,
 
   output logic [CNT_W-1:0]cnt_val_o,
   output logic            ovf_o
@@ -42,7 +42,7 @@ module static_counter #(
     endcase
   end
 
-  always_ff begin
+  always_ff @(posedge clk_i) begin
     if (reset_i) begin
       tlast_ff <= 1'b0;
     end else begin

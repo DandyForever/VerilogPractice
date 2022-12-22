@@ -2,12 +2,13 @@
 
 module eu_controller #(
   parameter AXIS_DIN_W = 8,
-  parameter CMD_W      = 3000,
   parameter ID         = 8'b1,
   parameter ID_W       = 8,
   parameter BUF_S      = 128,
   parameter ADDR_W     = $clog2(BUF_S),
-  parameter DATA_N     = 7'd20
+  parameter CNT_W      = 16,
+  parameter CC_N       = 6,
+  parameter SC_N       = 4
 )(
   input logic clk_i,
   input logic reset_i,
@@ -20,13 +21,21 @@ module eu_controller #(
   output logic                 m_axis_tvalid_o,
   input  logic                 m_axis_tready_i,
   output logic                 m_axis_tlast_o,
-  output logic [AXIS_DIN_W-1:0]m_axis_tdata_o
+  output logic [AXIS_DIN_W-1:0]m_axis_tdata_o,
+
+  input logic [SC_N-1:0]signal_i,
+
+  input logic [CC_N-1:0]axis_tvalid_i,
+  input logic [CC_N-1:0]axis_tready_i,
+  input logic [CC_N-1:0]axis_tlast_i
 );
 
   localparam CMD_SEND_ = 8'b00010001;
   localparam CMD_WR_   = 8'b00000001;
   localparam BC_ID     = {ID_W{1'b1}};
-  localparam DATA_SEND = {8'hAA, {DATA_N-1{ID}}, 8'b0};
+  localparam CNT_N     = SC_N + CC_N;
+  localparam BUF_EL_FOR_CNT = CNT_W / AXIS_DIN_W;
+  localparam DATA_N    = CNT_N*BUF_EL_FOR_CNT+1;
 
   typedef enum {
     WAIT_DATA,
@@ -45,12 +54,16 @@ module eu_controller #(
 
   logic [BUF_S-1:0][AXIS_DIN_W-1:0]cmd_in_ff;
   logic [BUF_S-1:0][AXIS_DIN_W-1:0]cmd_out_ff;
+  logic [BUF_S-1:0][AXIS_DIN_W-1:0]cmd_send_data;
 
   logic [ADDR_W-1:0]cmd_in_addr_ff;
   logic [ADDR_W-1:0]cmd_out_addr_ff;
 
   logic [ADDR_W-1:0]recv_size_ff;
   logic [ADDR_W-1:0]size_to_send_ff;
+
+  logic [ID_W-1:0]conf_reg_ff;
+  logic           cmd_we_ff;
 
   logic s_tready_ff;
   logic m_tvalid_ff;
@@ -179,7 +192,7 @@ module eu_controller #(
     if (reset_i) begin
       cmd_out_ff <= 0;
     end else begin
-      cmd_out_ff <= cmd_to_send ? cmd_in_ff : data_to_send ? DATA_SEND : cmd_out_ff;
+      cmd_out_ff <= cmd_to_send ? cmd_in_ff : data_to_send ? cmd_send_data : cmd_out_ff;
     end
   end
 
@@ -206,6 +219,64 @@ module eu_controller #(
       m_tlast_ff <= (cmd_out_addr_ff + 1 == size_to_send_ff);
     end
   end
+
+  logic write_reg;
+
+  assign write_reg = (state == GET_DATA) && ((next_state == SELF_CMD_WR) || (next_state == BC_CMD_WR));
+
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      conf_reg_ff <= {ID_W{1'b0}};
+    end else begin
+      conf_reg_ff <= write_reg ? cmd_in_ff[2] : conf_reg_ff;
+    end
+  end
+
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      cmd_we_ff <= 1'b0;
+    end else begin
+      cmd_we_ff <= write_reg;
+    end
+  end
+
+  logic [CNT_N-1:0][CNT_W-1:0]cnt_val;
+  logic [CNT_N-1:0]           ovf;
+
+  assign cmd_send_data[0] = {ID_W{1'b0}};
+  assign cmd_send_data[1] = ID;
+
+  genvar j, k;
+
+  for (j = 0; j < CNT_N; j++) begin
+    for (k = 0; k < BUF_EL_FOR_CNT; k++) begin
+      assign cmd_send_data[BUF_EL_FOR_CNT*j+k+2] = cnt_val[j][k*AXIS_DIN_W +:AXIS_DIN_W];
+    end
+  end
+
+  for (j = BUF_EL_FOR_CNT*CNT_N+1; j < BUF_S; j++) begin
+    assign cmd_send_data[j] = {AXIS_DIN_W{1'b0}};
+  end
+
+  perf_counters #(
+    .CNT_W(CNT_W),
+    .CC_N (CC_N),
+    .SC_N (SC_N)
+  ) eu_counters (
+    .clk_i        (clk_i           ),
+    .reset_i      (reset_i         ),
+    .signal_i     (signal_i        ),
+    .axis_tvalid_i(axis_tvalid_i   ),
+    .axis_tready_i(axis_tready_i   ),
+    .axis_tlast_i (axis_tlast_i    ),
+    .cmd_we_i     (cmd_we_ff       ),
+    .en_i         (conf_reg_ff[0]  ),
+    .clear_i      (conf_reg_ff[1]  ),
+    .save_i       (conf_reg_ff[2]  ),
+    .mode_i       (conf_reg_ff[4:3]),
+    .cnt_val_o    (cnt_val         ),
+    .ovf_o        (ovf             )
+  );
 
 endmodule
 

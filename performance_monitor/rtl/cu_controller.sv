@@ -2,7 +2,6 @@
 
 module cu_controller #(
   parameter AXIS_DIN_W = 8,
-  parameter CMD_W      = 3000,
   parameter ID         = 8'b0,
   parameter ID_W       = 8,
   parameter N_EU       = 8'b11,
@@ -27,7 +26,7 @@ module cu_controller #(
 
   localparam CMD_SEND_     = 8'b00010001;
   localparam CMD_WR_       = 8'b00000001;
-  localparam BC_CMD_WR     = {8'hAA, CMD_WR_, 8'hFF};
+  localparam BC_CMD_WR     = {8'b0001_0111, CMD_WR_, 8'hFF};
   localparam BC_CMD_SEND   = {CMD_SEND_, 8'hFF};
   localparam N_GET         = N_EU + 2'd2;
   localparam CMD_WR_SIZE   = 7'b11;

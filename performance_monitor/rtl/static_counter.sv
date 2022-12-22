@@ -23,6 +23,7 @@ module static_counter #(
   logic            ovf_ff;
 
   assign cnt_val_o = cnt_reg_ff;
+  assign ovf_o     = ovf_ff;
 
   always_ff @(posedge clk_i) begin
     if (reset_i) begin
